@@ -56,6 +56,33 @@ impl<'a> EnvHash<'a> {
     }
 }
 
+impl<'a> From<&EnvHash<'a>> for http::Request<String> {
+    fn from(env: &EnvHash<'a>) -> Self {
+        use http::method::Method;
+        use http::request::Request;
+        use http::uri::Uri;
+
+        let method = env
+            .get("REQUEST_METHOD")
+            .as_ref()
+            .map(|s| Method::try_from(s.as_str()).ok())
+            .flatten()
+            .unwrap_or(Method::POST);
+
+        let uri = env
+            .get("REQUEST_URI")
+            .as_ref()
+            .map(|s| s.parse::<Uri>().ok())
+            .flatten()
+            .unwrap();
+
+        let mut request: Request<String> = Request::default();
+        *request.method_mut() = method;
+        *request.uri_mut() = uri;
+        request
+    }
+}
+
 pub struct Response {
     status: i64,
     headers: HashMap<String, String>,
@@ -107,18 +134,16 @@ mod app {
 
     // NOTE: If any code panics the Ruby VM will crash
     pub fn call(env: &EnvHash) -> Option<Response> {
-        if let Some(path) = &env.get("PATH_INFO") {
-            // Routing
-            match path.as_str() {
-                "/rust" => Some(Response::new(
-                    200,
-                    HashMap::new(),
-                    "Greetings from RacksOnRacks\n",
-                )),
-                _ => None,
-            }
-        } else {
-            None
+        let request = http::Request::from(env);
+
+        // Routing
+        match (request.method(), request.uri().path()) {
+            (&http::method::Method::GET, "/rust") => Some(Response::new(
+                200,
+                HashMap::new(),
+                "Greetings from RacksOnRacks\n",
+            )),
+            _ => None,
         }
     }
 }

@@ -10,18 +10,16 @@ Example middleware written in Rust:
 
 ```rust
 pub fn call(env: &EnvHash) -> Option<Response> {
-    if let Some(path) = &env.get("PATH_INFO") {
-        // Routing
-        match path.as_str() {
-            "/rust" => Some(Response::new(
-                200,
-                HashMap::new(),
-                "Greetings from RacksOnRacks\n",
-            )),
-            _ => None,
-        }
-    } else {
-        None
+    let request = http::Request::from(env);
+
+    // Routing
+    match (request.method(), request.uri().path()) {
+        (&http::method::Method::GET, "/rust") => Some(Response::new(
+            200,
+            HashMap::new(),
+            "Greetings from RacksOnRacks\n",
+        )),
+        _ => None,
     }
 }
 ```
