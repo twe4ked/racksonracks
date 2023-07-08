@@ -147,3 +147,19 @@ mod app {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_works() {
+        VM::init();
+        let mut env_hash = Hash::new();
+        env_hash.store(RString::new_utf8("foo"), RString::new_utf8("bar"));
+        let env = EnvHash::new(&env_hash);
+        assert!(env.get("foo").is_some());
+        // FIXME: This fails
+        assert!(env.get("bar").is_some());
+    }
+}
